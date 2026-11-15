@@ -19,7 +19,7 @@ fun AppNavigation (modifier: Modifier= Modifier){
     ){
         composable<RegisterRoute> {
             RegisterScreen(
-                onSignUpClick = {fullName ->
+                onSignUpClick = { ->
                     navController.navigate(HomeRoute("")){
                         popUpTo<RegisterRoute>{
                             inclusive=true

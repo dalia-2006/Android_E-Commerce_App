@@ -1,5 +1,6 @@
 package com.example.e_commerce_app.ui.theme.feature.Auth.ui.screens.register
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -17,12 +18,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -31,20 +34,24 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImagePainter
 import com.example.e_commerce_app.R
 import com.example.e_commerce_app.ui.theme.feature.commerce.ui.component.CustomElevatedButton
 import com.example.e_commerce_app.ui.theme.feature.commerce.ui.component.CustomTextField
 import com.example.e_commerce_app.ui.theme.core.utils.AppValidators
+import com.example.e_commerce_app.ui.theme.feature.Auth.ui.screens.login.LoginEffects
+import com.example.e_commerce_app.ui.theme.feature.commerce.domain.utility.Resource
+import com.example.e_commerce_app.ui.theme.feature.commerce.ui.common.MainLoadingSection
 
 @Composable
 fun RegisterScreen(modifier: Modifier= Modifier,
-                   onSignUpClick : (String) -> Unit,
+                   onSignUpClick : () -> Unit,
+                   viewModel: RegisterViewModel =hiltViewModel(),
                    ){
-    var fullName by remember { mutableStateOf("dodo") }
-    var password by remember { mutableStateOf("123456") }
-    var rePassword by remember { mutableStateOf("123456") }
-    var phone by remember { mutableStateOf("01097917768") }
-    var email by remember { mutableStateOf("dodo@route.com") }
+    val states by viewModel.states.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     var fullNameError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
     var rePasswordError by remember { mutableStateOf<String?>(null) }
@@ -53,6 +60,16 @@ fun RegisterScreen(modifier: Modifier= Modifier,
     var passwordVisible  by remember { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val colorScheme = colorScheme
+
+    LaunchedEffect(Unit) {
+        viewModel.effects.collect { effects ->
+            when (effects) {
+                RegisterEffects.OnNavigateToHome -> {onSignUpClick()}
+                is RegisterEffects.ShowToast -> { Toast.makeText(context, effects.message, Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
     Column(modifier = Modifier
         .fillMaxSize()
         .verticalScroll(state = scrollState )
@@ -76,9 +93,9 @@ fun RegisterScreen(modifier: Modifier= Modifier,
         )
         CustomTextField(
             modifier = modifier.fillMaxWidth(),
-            value = fullName,
+            value = states.name,
             onValueChange = { newValue ->
-                fullName = newValue
+                viewModel.onIntent(RegisterIntent.NameChanged(name = newValue))
                 fullNameError=null
             },
             hintText = "enter your full name",
@@ -111,10 +128,10 @@ fun RegisterScreen(modifier: Modifier= Modifier,
         )
         CustomTextField(
             modifier = modifier.fillMaxWidth(),
-            value = phone,
+            value = states.phone,
             errorMessage = phoneError,
                     onValueChange = { newValue ->
-                phone = newValue
+                        viewModel.onIntent(RegisterIntent.PhoneChanged(phone = newValue))
                         phoneError=null
             },
             keyboardOptions = KeyboardOptions(
@@ -146,9 +163,9 @@ fun RegisterScreen(modifier: Modifier= Modifier,
         )
         CustomTextField(
             modifier = modifier.fillMaxWidth(),
-            value = email,
+            value = states.email,
             onValueChange = { newValue ->
-                email = newValue
+                viewModel.onIntent(RegisterIntent.EmailChanged(email = newValue))
                 emailError= null
             },
             keyboardOptions = KeyboardOptions(
@@ -182,9 +199,9 @@ fun RegisterScreen(modifier: Modifier= Modifier,
         )
         CustomTextField(
             modifier = modifier.fillMaxWidth(),
-            value = password,
+            value = states.password,
             onValueChange = { newValue ->
-                password = newValue
+                viewModel.onIntent(RegisterIntent.PasswordChanged(password = newValue))
                 passwordError=null
             },
             keyboardOptions = KeyboardOptions(
@@ -225,9 +242,9 @@ fun RegisterScreen(modifier: Modifier= Modifier,
         )
         CustomTextField(
             modifier = modifier.fillMaxWidth(),
-            value = rePassword,
+            value = states.rePassword,
             onValueChange = { newValue ->
-                rePassword = newValue
+                viewModel.onIntent(RegisterIntent.RePasswordChanged(rePassword= newValue))
                 rePasswordError=null
             },
             visualTransformation = if(passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
@@ -259,19 +276,22 @@ fun RegisterScreen(modifier: Modifier= Modifier,
             text = "Sign up",
             onClick = {
                 // todo : register and navigate to login screen
-                emailError= AppValidators.validEmail(email)
-                fullNameError= AppValidators.validateName(fullName)
-                passwordError= AppValidators.validatePassword(password)
-                rePasswordError= AppValidators.validateRePassword(password,rePassword)
-                phoneError= AppValidators.validatePhone(phone)
+                emailError= AppValidators.validEmail(states.email)
+                fullNameError= AppValidators.validateName(states.name)
+                passwordError= AppValidators.validatePassword(states.password)
+                rePasswordError= AppValidators.validateRePassword(states.password,states.rePassword)
+                phoneError= AppValidators.validatePhone(states.phone)
                 if (emailError == null && fullNameError == null && passwordError == null
                     && rePasswordError == null && phoneError == null ){
-                    // todo :  navigate to loginScreen
-                    onSignUpClick(fullName)
+                    // todo :  navigate to homeScreen
+                    viewModel.onIntent(RegisterIntent.OnSignupClick)
                 }
 
             }
         )
+        if (states.registerState is Resource.Loading){
+            MainLoadingSection()
+        }
     }
 }
 @Composable

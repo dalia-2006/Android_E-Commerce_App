@@ -45,7 +45,7 @@ fun CustomTextField(
                 style = hintStyle,
             )
         },
-        isError = errorMessage != null,
+        isError = !errorMessage.isNullOrBlank(),
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = colorScheme.secondary,
             unfocusedContainerColor = colorScheme.secondary,
